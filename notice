@@ -1,0 +1,12 @@
+Copyright 2022 Beijing Volcano Engine Technology Co., Ltd.
+
+Third-party files or components:
+===
+yhirose/cpp-httplib
+Copyright (c) 2022 Yuji Hirose. All rights reserved.
+SPDX-License-Identifier: MIT
+===
+nlohmann/json
+Copyright (c) 2013-2022 Niels Lohmann
+SPDX-License-Identifier: MIT
+===
