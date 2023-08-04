@@ -72,6 +72,7 @@ std::shared_ptr<HttpResponse> HttpUtils::SendHttpRequestWithRetry(HttpRequest &r
 std::shared_ptr<HttpResponse> HttpUtils::SendHttpRequest(HttpRequest &req, int timeout_millisecond) {
     std::string endpoint = req.scheme + req.host;
     httplib::Client cli(endpoint);
+    cli.enable_server_certificate_verification(false);
 
     httplib::Headers headers; {
         for (auto headerValue : req.headers) {
