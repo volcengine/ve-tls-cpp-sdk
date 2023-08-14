@@ -6,6 +6,7 @@ find_package(Protobuf REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(lz4 REQUIRED)
 
+set(CMAKE_CXX_FLAGS "-DCPPHTTPLIB_OPENSSL_SUPPORT ${CMAKE_CXX_FLAGS}")
 set(CMAKE_CXX_STANDARD 17)
 
 file(GLOB TLS_HEADERS "sdk/include/*.h")
