@@ -14,7 +14,9 @@ public:
         access_key_secret(""),
         region(""),
         timeout_millisecond(0),
-        disable_retry(false) {}
+        disable_retry(false),
+        api_version("0.2.0"),
+        use_long_link(true) {}
 
     std::string scheme;
     std::string endpoint;
@@ -23,6 +25,12 @@ public:
     std::string region;
     int timeout_millisecond;
     bool disable_retry;
+    std::string api_version;
+    bool use_long_link;
+
+    void setApiVersion(std::string api_version) {
+        this->api_version = api_version;
+    }
 };
 
 }

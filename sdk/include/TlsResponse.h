@@ -140,6 +140,19 @@ public:
     AnalysisResult analysis_result;
 };
 
+class SearchLogsV2Response : public TlsResponse {
+public:
+    std::string result_status;
+    int hit_count;
+    bool list_over;
+    bool analysis;
+    int count;
+    int limit;
+    std::string context;
+    nlohmann::json logs;
+    AnalysisResult analysis_result;
+};
+
 class DescribeLogContextResponse : public TlsResponse {
 public:
     nlohmann::json log_context_infos;

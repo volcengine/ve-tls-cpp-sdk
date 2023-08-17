@@ -10,6 +10,7 @@
 #include "TlsClient.h"
 #include "TlsJsonConversion.h"
 #include "thirdparty/nlohmann/json.hpp"
+#include "thirdparty/httplib/httplib.h"
 #include "lz4.h"
 
 std::string toLower(const std::string &str) {
@@ -73,7 +74,20 @@ static void processNullField(const std::string &src, std::string &res) {
             inner_request->scheme = this->config_.scheme; \
             inner_request->method = request.Method(); \
             inner_request->host = this->config_.endpoint; \
-            inner_request->path = "/" #METHOD; \
+            if (#METHOD == "SearchLogsV2"){  \
+                inner_request->path = "/SearchLogs";                   \
+            } else {                         \
+                inner_request->path = "/" #METHOD;                       \
+            }                                \
+            std::string  version=request.getApiVersion();  \
+            if(#METHOD == "SearchLogsV2"){    \
+                inner_request->headers["x-tls-apiversion"] ="0.3.0";  \
+            }\
+            else if(!version.empty()){    \
+                inner_request->headers["x-tls-apiversion"] = version;                       \
+            }else {                          \
+                inner_request->headers["x-tls-apiversion"] = config_.api_version;  \
+            }                            \
             inner_request->content_type = request.ContentType(); \
             nlohmann::json j; \
             request.MakeBodyParamJson(j); \
@@ -95,7 +109,7 @@ static void processNullField(const std::string &src, std::string &res) {
             } \
         } \
         signer.calcAndSetAuthorization(inner_request); \
-        auto inner_resp = this->config_.disable_retry == false ? HttpUtils::SendHttpRequestWithRetry(*inner_request, this->config_.timeout_millisecond) : HttpUtils::SendHttpRequest(*inner_request, this->config_.timeout_millisecond); \
+        auto inner_resp = this->config_.disable_retry == false ? HttpUtils::SendHttpRequestWithRetry(*inner_request, this->config_.timeout_millisecond, longlinkCli_) : HttpUtils::SendHttpRequest(*inner_request, this->config_.timeout_millisecond, longlinkCli_); \
         std::string real_body; \
         processNullField(inner_resp->body, real_body); \
         auto inner_resp_body_json = nlohmann::json::parse(real_body.c_str()); \
@@ -115,6 +129,16 @@ namespace VolcengineTls {
 
 TlsClient::TlsClient(const TlsClientConfig &config) {
     this->config_ = config;
+    this->longlinkCli_ = nullptr;
+    if (this->config_.use_long_link == true) {
+        std::string endpoint = config.scheme + config.endpoint;
+        longlinkCli_ = std::make_shared<httplib::Client>(endpoint);
+        longlinkCli_->set_keep_alive(true);
+        longlinkCli_->enable_server_certificate_verification(false);
+        if (config.timeout_millisecond > 0) {
+            longlinkCli_->set_read_timeout(config.timeout_millisecond / 1000, config.timeout_millisecond % 1000 * 1000);
+        }
+    }
 }
 
 PutLogsResponse TlsClient::PutLogs(PutLogsRequest &request) {
@@ -149,7 +173,7 @@ PutLogsResponse TlsClient::PutLogs(PutLogsRequest &request) {
 
         request.log_group_list->SerializeToString(&(inner_request->body));
         inner_request->headers["x-tls-bodyrawsize"] = ::to_string(inner_request->body.size());
-
+        inner_request->headers["x-tls-apiversion"] = config_.api_version;
         if (request.hash_key != nullptr) {
             inner_request->headers["x-tls-hashkey"] = *(request.hash_key);
         }
@@ -185,7 +209,7 @@ PutLogsResponse TlsClient::PutLogs(PutLogsRequest &request) {
     }
 
     signer.calcAndSetAuthorization(inner_request);
-    auto inner_resp = this->config_.disable_retry == false ? HttpUtils::SendHttpRequestWithRetry(*inner_request, this->config_.timeout_millisecond) : HttpUtils::SendHttpRequest(*inner_request, this->config_.timeout_millisecond);
+    auto inner_resp = this->config_.disable_retry == false ? HttpUtils::SendHttpRequestWithRetry(*inner_request, this->config_.timeout_millisecond, longlinkCli_) : HttpUtils::SendHttpRequest(*inner_request, this->config_.timeout_millisecond, longlinkCli_);
     resp.request_id = inner_resp->request_id;
     resp.http_status_code = inner_resp->status_code;
     return resp;
@@ -254,6 +278,7 @@ ConsumeLogsResponse TlsClient::ConsumeLogs(ConsumeLogsRequest &request) {
         inner_request->method = request.Method();
         inner_request->host = this->config_.endpoint;
         inner_request->path = "/ConsumeLogs";
+        inner_request->headers["x-tls-apiversion"] = config_.api_version;
         inner_request->content_type = request.ContentType();
 
         nlohmann::json j;
@@ -279,7 +304,7 @@ ConsumeLogsResponse TlsClient::ConsumeLogs(ConsumeLogsRequest &request) {
     }
 
     signer.calcAndSetAuthorization(inner_request);
-    auto inner_resp = this->config_.disable_retry == false ? HttpUtils::SendHttpRequestWithRetry(*inner_request, this->config_.timeout_millisecond) : HttpUtils::SendHttpRequest(*inner_request, this->config_.timeout_millisecond);
+    auto inner_resp = this->config_.disable_retry == false ? HttpUtils::SendHttpRequestWithRetry(*inner_request, this->config_.timeout_millisecond, longlinkCli_) : HttpUtils::SendHttpRequest(*inner_request, this->config_.timeout_millisecond, longlinkCli_);
     resp.request_id = inner_resp->request_id;
     resp.http_status_code = inner_resp->status_code;
     if (inner_resp->headers.count("X-Tls-Cursor")) {
@@ -363,6 +388,7 @@ WebTracksResponse TlsClient::WebTracks(WebTracksRequest &request) {
         inner_request->method = request.Method();
         inner_request->host = this->config_.endpoint;
         inner_request->path = "/WebTracks";
+        inner_request->headers["x-tls-apiversion"] = config_.api_version;
         inner_request->content_type = request.ContentType();
 
         nlohmann::json j;
@@ -394,7 +420,7 @@ WebTracksResponse TlsClient::WebTracks(WebTracksRequest &request) {
     }
 
     signer.calcAndSetAuthorization(inner_request);
-    auto inner_resp = this->config_.disable_retry == false ? HttpUtils::SendHttpRequestWithRetry(*inner_request, this->config_.timeout_millisecond) : HttpUtils::SendHttpRequest(*inner_request, this->config_.timeout_millisecond);
+    auto inner_resp = this->config_.disable_retry == false ? HttpUtils::SendHttpRequestWithRetry(*inner_request, this->config_.timeout_millisecond, longlinkCli_) : HttpUtils::SendHttpRequest(*inner_request, this->config_.timeout_millisecond, longlinkCli_);
     resp.request_id = inner_resp->request_id;
     resp.http_status_code = inner_resp->status_code;
     return resp;
@@ -418,6 +444,7 @@ TLS_CLIENT_METHOD_DEFINITION(DeleteIndex);
 TLS_CLIENT_METHOD_DEFINITION(ModifyIndex);
 TLS_CLIENT_METHOD_DEFINITION(DescribeIndex);
 TLS_CLIENT_METHOD_DEFINITION(SearchLogs);
+TLS_CLIENT_METHOD_DEFINITION(SearchLogsV2);
 TLS_CLIENT_METHOD_DEFINITION(DescribeLogContext);
 TLS_CLIENT_METHOD_DEFINITION(DescribeHistogram);
 TLS_CLIENT_METHOD_DEFINITION(CreateDownloadTask);

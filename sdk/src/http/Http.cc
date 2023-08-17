@@ -46,11 +46,11 @@ void decrease_retry_counter() {
     return;
 }
 
-std::shared_ptr<HttpResponse> HttpUtils::SendHttpRequestWithRetry(HttpRequest &req, int timeout_millisecond) {
+std::shared_ptr<HttpResponse> HttpUtils::SendHttpRequestWithRetry(HttpRequest &req, int timeout_millisecond, std::shared_ptr<httplib::Client> longlinkCli) {
     std::shared_ptr<HttpResponse> resp;
     auto quit_timestamp = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count() + timeout_millisecond;
     while (true) {
-        resp = HttpUtils::SendHttpRequest(req, timeout_millisecond);
+        resp = HttpUtils::SendHttpRequest(req, timeout_millisecond, longlinkCli);
         int need_retry = 0;
         if (resp->status_code <= 0 || resp->status_code == 429 || resp->status_code == 500 || resp->status_code == 502 || resp->status_code == 503 || resp->status_code == 504)  {
             increase_retry_counter();
@@ -69,10 +69,18 @@ std::shared_ptr<HttpResponse> HttpUtils::SendHttpRequestWithRetry(HttpRequest &r
     return resp;
 }
 
-std::shared_ptr<HttpResponse> HttpUtils::SendHttpRequest(HttpRequest &req, int timeout_millisecond) {
-    std::string endpoint = req.scheme + req.host;
-    httplib::Client cli(endpoint);
-    cli.enable_server_certificate_verification(false);
+std::shared_ptr<HttpResponse> HttpUtils::SendHttpRequest(HttpRequest &req, int timeout_millisecond, std::shared_ptr<httplib::Client> longlinkCli) {
+    std::shared_ptr<httplib::Client> cli;
+    if (longlinkCli != nullptr) {
+        cli = longlinkCli;
+    } else {
+        std::string endpoint = req.scheme + req.host;
+        cli = std::make_shared<httplib::Client>(endpoint);
+        if (timeout_millisecond > 0) {
+            cli->set_read_timeout(timeout_millisecond / 1000, timeout_millisecond % 1000 * 1000);
+        }
+        cli->enable_server_certificate_verification(false);
+    }
 
     httplib::Headers headers; {
         for (auto headerValue : req.headers) {
@@ -84,10 +92,8 @@ std::shared_ptr<HttpResponse> HttpUtils::SendHttpRequest(HttpRequest &req, int t
             params.insert(paramValue);
         }
     }
-    if (timeout_millisecond > 0) {
-        cli.set_read_timeout(timeout_millisecond / 1000, timeout_millisecond % 1000 * 1000);
-    }
-    auto innerResp = cli.CustomRequest(req.method, req.path, headers, params, req.body, req.content_type);
+
+    auto innerResp = cli->CustomRequest(req.method, req.path, headers, params, req.body, req.content_type);
     std::shared_ptr<HttpResponse> resp = make_shared<HttpResponse>();
     for (auto iter : innerResp->headers) {
         resp->headers[iter.first] = iter.second;

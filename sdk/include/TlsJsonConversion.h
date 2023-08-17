@@ -66,6 +66,7 @@ namespace VolcengineTls {
     COMMON_JSON_DEC(DescribeCursorResponse)
     COMMON_JSON_DEC(ConsumeLogsResponse)
     COMMON_JSON_DEC(SearchLogsResponse)
+    COMMON_JSON_DEC(SearchLogsV2Response)
     COMMON_JSON_DEC(DescribeLogContextResponse)
     COMMON_JSON_DEC(DescribeHistogramResponse)
     COMMON_JSON_DEC(WebTracksResponse)

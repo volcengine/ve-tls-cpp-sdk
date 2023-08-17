@@ -62,6 +62,7 @@ namespace VolcengineTls {
     COMMON_JSON_DEF(DescribeCursorResponse, error_code, error_message, request_id, http_status_code, cursor)
     COMMON_JSON_DEF(ConsumeLogsResponse, error_code, error_message, request_id, http_status_code, cursor, count)
     COMMON_JSON_DEF(SearchLogsResponse, error_code, error_message, request_id, http_status_code, result_status, hit_count, list_over, analysis, count, limit, context, logs, analysis_result)
+    COMMON_JSON_DEF(SearchLogsV2Response, error_code, error_message, request_id, http_status_code, result_status, hit_count, list_over, analysis, count, limit, context, logs, analysis_result)
     COMMON_JSON_DEF(DescribeLogContextResponse, error_code, error_message, request_id, http_status_code, log_context_infos, prev_over, next_over)
     COMMON_JSON_DEF(DescribeHistogramResponse, error_code, error_message, request_id, http_status_code, result_status, interval, total_count, histogram_infos)
     COMMON_JSON_DEF(WebTracksResponse, error_code, error_message, request_id, http_status_code)

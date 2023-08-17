@@ -46,6 +46,7 @@ int main() {
         {"WebTracks", "NO"},
         {"WebTracksLZ4", "NO"},
         {"SearchLogs", "NO"},
+        {"SearchLogsV2", "NO"},
         {"DescribeHistogram", "NO"},
         // Download task
         {"CreateDownloadTask", "NO"},
@@ -327,6 +328,17 @@ int main() {
             request.limit = std::make_shared<int>(30);
         }
         RUN(SearchLogs);
+    }
+
+    CHECK_RUN_TEST("SearchLogsV2") {
+        SearchLogsV2Request request; {
+            request.topic_id = std::make_shared<std::string>("XXX");
+            request.start_time = std::make_shared<int>(1618080000);
+            request.end_time = std::make_shared<int>(2078085187);
+            request.query = std::make_shared<std::string>("*");
+            request.limit = std::make_shared<int>(30);
+        }
+        RUN(SearchLogsV2);
     }
 
     CHECK_RUN_TEST("DescribeHistogram") {

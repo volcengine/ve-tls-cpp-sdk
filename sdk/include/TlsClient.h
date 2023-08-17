@@ -9,6 +9,10 @@
 #define TLS_CLIENT_METHOD_DECLARATION(method) \
     method##Response method(method##Request &request);
 
+namespace httplib {
+    class Client;
+}
+
 namespace VolcengineTls {
 
 class TlsClient {
@@ -35,6 +39,7 @@ public:
     TLS_CLIENT_METHOD_DECLARATION(DescribeCursor);
     TLS_CLIENT_METHOD_DECLARATION(ConsumeLogs);
     TLS_CLIENT_METHOD_DECLARATION(SearchLogs);
+    TLS_CLIENT_METHOD_DECLARATION(SearchLogsV2);
     TLS_CLIENT_METHOD_DECLARATION(DescribeLogContext);
     TLS_CLIENT_METHOD_DECLARATION(DescribeHistogram);
     TLS_CLIENT_METHOD_DECLARATION(WebTracks);
@@ -71,6 +76,7 @@ public:
 
 private:
     TlsClientConfig config_;
+    std::shared_ptr<httplib::Client> longlinkCli_;
 };
 
 }

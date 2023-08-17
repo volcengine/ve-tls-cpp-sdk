@@ -289,6 +289,28 @@ namespace VolcengineTls {
     EMPTY_TLS_HEADER_JSON_DEFINITION(SearchLogsRequest)
     COMMON_TLS_BODY_JSON_DEFINITION(SearchLogsRequest, topic_id, query, start_time, end_time, limit, context, sort) 
 
+    // SearchLogsV2Request
+    bool SearchLogsV2Request::CheckValidation() {
+        return this->topic_id == nullptr ? false :
+               this->query == nullptr ? false :
+               this->start_time == nullptr ? false :
+               this->end_time == nullptr ? false : true;
+    }
+
+    std::string SearchLogsV2Request::Method() {
+        return "POST";
+    }
+
+    std::string SearchLogsV2Request::ContentType() {
+        return "application/json";
+    }
+
+    EMPTY_TLS_QUERY_JSON_DEFINITION(SearchLogsV2Request)
+
+    EMPTY_TLS_HEADER_JSON_DEFINITION(SearchLogsV2Request)
+
+    COMMON_TLS_BODY_JSON_DEFINITION(SearchLogsV2Request, topic_id, query, start_time, end_time, limit, context, sort)
+
     // DescribeLogContextRequest
     bool DescribeLogContextRequest::CheckValidation() {
         return this->topic_id == nullptr ? false : 

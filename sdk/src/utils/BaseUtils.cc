@@ -165,6 +165,21 @@ std::string StringUtils::stringToHex(const unsigned char* input, int length) {
     }
     return output;
 }
+
+std::string StringUtils::replaceWhiteSpace(std::string origin) {
+    if (origin.length() == 0) {
+        return "";
+    }
+    std::map<std::string, std::string> values = {{"\n", "\\n"},
+                                                 {"\r", "\\r"},
+                                                 {"\t", "\\t"}};
+    std::string result = origin;
+    for (auto const &x: values) {
+        StringUtils::stringReplace(result, x.first, x.second);
+    }
+    return result;
+};
+
 std::string StringUtils::stringReplace(const std::string& input, const std::string& substr, const std::string& newstr) {
     std::string ret(input);
     std::string::size_type pos = 0;
