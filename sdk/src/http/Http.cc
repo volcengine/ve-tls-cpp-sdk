@@ -93,8 +93,13 @@ std::shared_ptr<HttpResponse> HttpUtils::SendHttpRequest(HttpRequest &req, int t
         }
     }
 
-    auto innerResp = cli->CustomRequest(req.method, req.path, headers, params, req.body, req.content_type);
     std::shared_ptr<HttpResponse> resp = make_shared<HttpResponse>();
+    auto innerResp = cli->CustomRequest(req.method, req.path, headers, params, req.body, req.content_type);
+    if ((int)innerResp.error() != 0) {
+        resp->status_code = -1;
+        return resp;
+    }
+
     for (auto iter : innerResp->headers) {
         resp->headers[iter.first] = iter.second;
     }
