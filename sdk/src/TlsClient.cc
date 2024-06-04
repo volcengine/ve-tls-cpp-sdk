@@ -5,6 +5,7 @@
 #include "http/SignKeyInfo.h"
 #include "http/SignV4.h"
 #include "http/Http.h"
+#include "http/HttpResponse.h"
 #include "TlsRequest.h"
 #include "TlsResponse.h"
 #include "TlsClient.h"
@@ -18,7 +19,7 @@ std::string toLower(const std::string &str) {
     for (int i=0; i<str.size(); i++) {
         if (str[i] >= 'A' && str[i] <= 'Z') {
             res += str[i] + 'a' - 'A';
-        }
+        } else res += str[i];
     } return res;
 }
 
@@ -68,6 +69,7 @@ static void processNullField(const std::string &src, std::string &res) {
         std::shared_ptr<Credential> credential = std::make_shared<Credential>(); { \
             credential->setAccessKeyId(this->config_.access_key_id); \
             credential->setAccessKeySecret(this->config_.access_key_secret); \
+	    credential->setSecurityToken(this->config_.security_token); \
         } \
         SignV4 signer = SignV4(credential, this->config_.region); \
         std::shared_ptr<HttpRequest> inner_request = std::make_shared<HttpRequest>(); { \
@@ -81,8 +83,11 @@ static void processNullField(const std::string &src, std::string &res) {
             }                                \
             std::string  version=request.getApiVersion();  \
             if(#METHOD == "SearchLogsV2"){    \
-                inner_request->headers["x-tls-apiversion"] ="0.3.0";  \
+                inner_request->headers["x-tls-apiversion"] = "0.3.0";  \
             }\
+            else if(#METHOD == "SearchLogs") {                     \
+                inner_request->headers["x-tls-apiversion"] = "0.2.0";  \
+            }                                 \
             else if(!version.empty()){    \
                 inner_request->headers["x-tls-apiversion"] = version;                       \
             }else {                          \
@@ -110,6 +115,12 @@ static void processNullField(const std::string &src, std::string &res) {
         } \
         signer.calcAndSetAuthorization(inner_request); \
         auto inner_resp = this->config_.disable_retry == false ? HttpUtils::SendHttpRequestWithRetry(*inner_request, this->config_.timeout_millisecond, longlinkCli_) : HttpUtils::SendHttpRequest(*inner_request, this->config_.timeout_millisecond, longlinkCli_); \
+        if (inner_resp->status_code <= 0) { \
+            resp.http_status_code = inner_resp->status_code; \
+            resp.error_code = inner_resp->error_code; \
+            resp.error_message = inner_resp->error_message; \
+            return resp; \
+        } \
         std::string real_body; \
         processNullField(inner_resp->body, real_body); \
         auto inner_resp_body_json = nlohmann::json::parse(real_body.c_str()); \
@@ -141,6 +152,17 @@ TlsClient::TlsClient(const TlsClientConfig &config) {
     }
 }
 
+void TlsClient::getErrorInfo(std::shared_ptr<HttpResponse> &inner_resp, TlsResponse &resp) {
+    std::string real_body;
+    processNullField(inner_resp->body, real_body);
+    auto inner_resp_body_json = nlohmann::json::parse(real_body.c_str());
+    try {
+        from_json(inner_resp_body_json, resp);
+    } catch (std::exception &ex) {
+        fprintf(stderr, "encountered exception when parse json %s\n", ex.what());
+    }
+}
+
 PutLogsResponse TlsClient::PutLogs(PutLogsRequest &request) {
     PutLogsResponse resp = PutLogsResponse();
     PROCESS_EXCEPTION_BEGIN
@@ -162,6 +184,7 @@ PutLogsResponse TlsClient::PutLogs(PutLogsRequest &request) {
     std::shared_ptr<Credential> credential = std::make_shared<Credential>(); {
         credential->setAccessKeyId(this->config_.access_key_id);
         credential->setAccessKeySecret(this->config_.access_key_secret);
+	credential->setSecurityToken(this->config_.security_token);
     }
     SignV4 signer = SignV4(credential, this->config_.region);
 
@@ -178,8 +201,8 @@ PutLogsResponse TlsClient::PutLogs(PutLogsRequest &request) {
             inner_request->headers["x-tls-hashkey"] = *(request.hash_key);
         }
 
-        if (request.compression != nullptr && toLower(*request.compression) == "lz4") {
-            inner_request->headers["x-tls-compression"] = "lz4";
+        if (request.compression == nullptr || (request.compression != nullptr && toLower(*request.compression) == "lz4")) {
+            inner_request->headers["x-tls-compresstype"] = "lz4";
             int lz4_bound = LZ4_compressBound(inner_request->body.size());
             int buf_size = 64;
             while (buf_size < lz4_bound)
@@ -210,8 +233,21 @@ PutLogsResponse TlsClient::PutLogs(PutLogsRequest &request) {
 
     signer.calcAndSetAuthorization(inner_request);
     auto inner_resp = this->config_.disable_retry == false ? HttpUtils::SendHttpRequestWithRetry(*inner_request, this->config_.timeout_millisecond, longlinkCli_) : HttpUtils::SendHttpRequest(*inner_request, this->config_.timeout_millisecond, longlinkCli_);
+
+    if (inner_resp->status_code <= 0) {
+        resp.http_status_code = inner_resp->status_code;
+        resp.error_code = inner_resp->error_code;
+        resp.error_message = inner_resp->error_message;
+
+        return resp;
+    }
+
+    if (inner_resp->status_code != 200) {
+        this->getErrorInfo(inner_resp, resp);
+    }
     resp.request_id = inner_resp->request_id;
     resp.http_status_code = inner_resp->status_code;
+
     return resp;
     PROCESS_EXCEPTION_END
 }
@@ -270,6 +306,7 @@ ConsumeLogsResponse TlsClient::ConsumeLogs(ConsumeLogsRequest &request) {
     std::shared_ptr<Credential> credential = std::make_shared<Credential>(); {
         credential->setAccessKeyId(this->config_.access_key_id);
         credential->setAccessKeySecret(this->config_.access_key_secret);
+	credential->setSecurityToken(this->config_.security_token);
     }
     SignV4 signer = SignV4(credential, this->config_.region);
 
@@ -305,6 +342,15 @@ ConsumeLogsResponse TlsClient::ConsumeLogs(ConsumeLogsRequest &request) {
 
     signer.calcAndSetAuthorization(inner_request);
     auto inner_resp = this->config_.disable_retry == false ? HttpUtils::SendHttpRequestWithRetry(*inner_request, this->config_.timeout_millisecond, longlinkCli_) : HttpUtils::SendHttpRequest(*inner_request, this->config_.timeout_millisecond, longlinkCli_);
+
+    if (inner_resp->status_code <= 0) {
+        resp.http_status_code = inner_resp->status_code;
+        resp.error_code = inner_resp->error_code;
+        resp.error_message = inner_resp->error_message;
+
+        return resp;
+    }
+
     resp.request_id = inner_resp->request_id;
     resp.http_status_code = inner_resp->status_code;
     if (inner_resp->headers.count("X-Tls-Cursor")) {
@@ -354,7 +400,10 @@ ConsumeLogsResponse TlsClient::ConsumeLogs(ConsumeLogsRequest &request) {
         } else {
             resp.log_group_list.ParseFromString(inner_resp->body);
         }
+    } else {
+        this->getErrorInfo(inner_resp, resp);
     }
+
     return resp;
     PROCESS_EXCEPTION_END
 }
@@ -380,6 +429,7 @@ WebTracksResponse TlsClient::WebTracks(WebTracksRequest &request) {
     std::shared_ptr<Credential> credential = std::make_shared<Credential>(); {
         credential->setAccessKeyId(this->config_.access_key_id);
         credential->setAccessKeySecret(this->config_.access_key_secret);
+	credential->setSecurityToken(this->config_.security_token);
     }
     SignV4 signer = SignV4(credential, this->config_.region);
 
@@ -398,7 +448,7 @@ WebTracksResponse TlsClient::WebTracks(WebTracksRequest &request) {
 
         inner_request->headers["x-tls-bodyrawsize"] = ::to_string(inner_request->body.size());
 
-        if (request.compression != nullptr && toLower(*request.compression) == "lz4") {
+        if (request.compression == nullptr || (request.compression != nullptr && toLower(*request.compression) == "lz4")) {
             inner_request->headers["x-tls-compression"] = "lz4";
             int lz4_bound = LZ4_compressBound(inner_request->body.size());
             int buf_size = 64;
@@ -421,8 +471,21 @@ WebTracksResponse TlsClient::WebTracks(WebTracksRequest &request) {
 
     signer.calcAndSetAuthorization(inner_request);
     auto inner_resp = this->config_.disable_retry == false ? HttpUtils::SendHttpRequestWithRetry(*inner_request, this->config_.timeout_millisecond, longlinkCli_) : HttpUtils::SendHttpRequest(*inner_request, this->config_.timeout_millisecond, longlinkCli_);
+
+    if (inner_resp->status_code <= 0) {
+        resp.http_status_code = inner_resp->status_code;
+        resp.error_code = inner_resp->error_code;
+        resp.error_message = inner_resp->error_message;
+
+        return resp;
+    }
+
+    if (inner_resp->status_code != 200) {
+        this->getErrorInfo(inner_resp, resp);
+    }
     resp.request_id = inner_resp->request_id;
     resp.http_status_code = inner_resp->status_code;
+
     return resp;
     PROCESS_EXCEPTION_END
 }

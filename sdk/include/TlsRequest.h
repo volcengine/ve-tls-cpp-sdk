@@ -329,6 +329,8 @@ namespace VolcengineTls {
         std::shared_ptr<std::string> context;
         std::shared_ptr<std::string> sort;
 
+        SearchLogsRequest() : TlsRequest("0.2.0") {};
+
         TLS_REQUEST_COMMON_METHOD_DECLARATION(SearchLogsRequest)
     };
     /**

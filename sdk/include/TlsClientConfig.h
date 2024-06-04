@@ -12,16 +12,18 @@ public:
         endpoint(""),
         access_key_id(""),
         access_key_secret(""),
+	security_token(""),
         region(""),
         timeout_millisecond(0),
         disable_retry(false),
-        api_version("0.2.0"),
+        api_version("0.3.0"),
         use_long_link(true) {}
 
     std::string scheme;
     std::string endpoint;
     std::string access_key_id;
     std::string access_key_secret;
+    std::string security_token;
     std::string region;
     int timeout_millisecond;
     bool disable_retry;

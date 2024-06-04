@@ -73,6 +73,9 @@ void SignV4::calcAndSetAuthorization(const std::shared_ptr<HttpRequest> &req) {
     std::stringstream auth;
     auth << "HMAC-SHA256 Credential=" << credential << ", SignedHeaders=" << keys << ", Signature=" << sig;
     req->headers["Authorization"] = auth.str();
+    if (!cred.getSecurityToken().empty()) {
+        req->headers["X-Security-Token"] = cred.getSecurityToken();
+    }
     return;
 }
 
@@ -130,7 +133,8 @@ std::vector<std::pair<std::string, std::string>> SignV4::signedQuery(const std::
 
 std::string SignV4::uriEncode(const std::string& in, bool encodeSlash) {
     int hexCount = 0;
-    uint8_t uint8Char[in.length()];
+    // uint8_t uint8Char[in.length()];
+    uint8_t *uint8Char = new uint8_t[in.length()];
     for (int i = 0; i < in.length(); i++) {
         uint8Char[i] = (uint8_t)(in[i]);
         if (uint8Char[i] == '/') {
@@ -141,7 +145,9 @@ std::string SignV4::uriEncode(const std::string& in, bool encodeSlash) {
             hexCount++;
         }
     }
-    char encoded[in.length() + 2 * hexCount];
+    char *encoded = new char[in.length() + 2 * hexCount];
+    memset(encoded, 0, in.length() + 2 * hexCount);
+    // char encoded[in.length() + 2 * hexCount];
     for (int i = 0, j = 0; i < in.length(); i++) {
         if (uint8Char[i] == '/') {
             if (encodeSlash) {
@@ -163,7 +169,9 @@ std::string SignV4::uriEncode(const std::string& in, bool encodeSlash) {
             j++;
         }
     }
-    std::string ret(encoded, encoded + sizeof(encoded));
+    std::string ret(encoded, encoded + in.length() + 2 * hexCount);
+    delete []encoded;
+    delete []uint8Char;
     return ret;
 }
 

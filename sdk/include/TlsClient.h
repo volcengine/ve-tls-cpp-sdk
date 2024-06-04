@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include "http/HttpResponse.h"
 #include "TlsClientConfig.h"
 #include "TlsResponse.h"
 #include "TlsRequest.h"
@@ -18,6 +19,7 @@ namespace VolcengineTls {
 class TlsClient {
 public:
     TlsClient(const TlsClientConfig &config);
+    void getErrorInfo(std::shared_ptr<HttpResponse> &inner_resp, TlsResponse &resp);
 
     TLS_CLIENT_METHOD_DECLARATION(CreateProject);
     TLS_CLIENT_METHOD_DECLARATION(DeleteProject);

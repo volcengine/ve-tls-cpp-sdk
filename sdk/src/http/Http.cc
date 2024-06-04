@@ -86,6 +86,7 @@ std::shared_ptr<HttpResponse> HttpUtils::SendHttpRequest(HttpRequest &req, int t
         for (auto headerValue : req.headers) {
             headers.insert(headerValue);
         }
+        headers.emplace("User-Agent", TLS_CPP_SDK_USER_AGENT);
     }
     httplib::Params params; {
         for (auto paramValue : req.queries) {
@@ -96,7 +97,10 @@ std::shared_ptr<HttpResponse> HttpUtils::SendHttpRequest(HttpRequest &req, int t
     std::shared_ptr<HttpResponse> resp = make_shared<HttpResponse>();
     auto innerResp = cli->CustomRequest(req.method, req.path, headers, params, req.body, req.content_type);
     if ((int)innerResp.error() != 0) {
-        resp->status_code = -1;
+        resp->status_code = -(int)innerResp.error();
+        resp->error_code = "NetworkError";
+        resp->error_message = httplib::to_string(innerResp.error());
+
         return resp;
     }
 
@@ -108,6 +112,7 @@ std::shared_ptr<HttpResponse> HttpUtils::SendHttpRequest(HttpRequest &req, int t
     }
     resp->status_code = innerResp->status;
     resp->body = innerResp->body;
+
     return resp;
 }
 

@@ -1,0 +1,5 @@
+build/
+demo/build/
+cmake-build-*/
+.idea/
+.vscode/

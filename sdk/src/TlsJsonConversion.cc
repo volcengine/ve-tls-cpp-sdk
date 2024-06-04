@@ -33,6 +33,8 @@ namespace VolcengineTls {
     COMMON_JSON_DEF(TaskInfo, task_id, task_name, topic_id, query, start_time, end_time, data_format, task_status, compression, create_time, log_size, log_count)
     COMMON_JSON_DEF(TopicInfo, topic_name, project_id, topic_id, ttl, create_time, modify_time, shard_count, description, auto_split, max_split_shard, enable_tracking, time_key, time_format)
 
+    COMMON_JSON_DEF(TlsResponse, error_code, error_message, request_id, http_status_code)
+
     // Project
     COMMON_JSON_DEF(CreateProjectResponse, error_code, error_message, request_id, http_status_code, project_id)
     COMMON_JSON_DEF(DeleteProjectResponse, error_code, error_message, request_id, http_status_code)

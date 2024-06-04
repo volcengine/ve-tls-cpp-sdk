@@ -37,7 +37,9 @@ namespace VolcengineTls {
     COMMON_JSON_DEC(QueryResp)
     COMMON_JSON_DEC(TaskInfo)
     COMMON_JSON_DEC(TopicInfo)
-    
+
+    COMMON_JSON_DEC(TlsResponse)
+
     // Project
     COMMON_JSON_DEC(CreateProjectResponse)
     COMMON_JSON_DEC(DeleteProjectResponse)
